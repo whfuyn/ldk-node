@@ -460,6 +460,58 @@ pub fn open_channel(
 	wait_for_tx(&electrsd.client, funding_txo_a.txid);
 }
 
+pub(crate) fn do_confirmation_height_lt_latest_broadcast_height<E: ElectrumApi>(
+	node_a: TestNode, node_b: TestNode, bitcoind: &BitcoindClient, electrsd: &E, _allow_0conf: bool,
+	expect_anchor_channel: bool, _force_close: bool,
+) {
+	let addr_a = node_a.onchain_payment().new_address().unwrap();
+	let addr_b = node_b.onchain_payment().new_address().unwrap();
+
+	let premine_amount_sat = if expect_anchor_channel { 2_125_000 } else { 2_100_000 };
+	premine_and_distribute_funds(
+		&bitcoind,
+		electrsd,
+		vec![addr_a, addr_b],
+		Amount::from_sat(premine_amount_sat),
+	);
+	node_a.sync_wallets().unwrap();
+	node_b.sync_wallets().unwrap();
+
+	println!("\nA -- open_channel -> B");
+	let funding_amount_sat = 2_080_000;
+	let push_msat = (funding_amount_sat / 2) * 1000; // balance the channel
+	let user_channel_id = node_a
+		.open_announced_channel(
+			node_b.node_id(),
+			node_b.listening_addresses().unwrap().first().unwrap().clone(),
+			funding_amount_sat,
+			Some(push_msat),
+			None,
+		)
+		.unwrap();
+
+
+	generate_blocks_and_wait(&bitcoind, electrsd, 6);
+	node_a.sync_wallets().unwrap();
+	node_b.sync_wallets().unwrap();
+
+	generate_blocks_and_wait(&bitcoind, electrsd, 6);
+	node_a.sync_wallets().unwrap();
+	node_b.sync_wallets().unwrap();
+    
+	let invoice_amount_1_msat = 2500_000;
+	let invoice = node_b.bolt11_payment().receive(invoice_amount_1_msat, &"asdf", 9217).unwrap();
+	let _payment_id = node_a.bolt11_payment().send(&invoice, None).unwrap();
+
+	node_a.force_close_channel(&user_channel_id, node_b.node_id(), None).unwrap();
+
+	for _ in 0..3 {
+		generate_blocks_and_wait(&bitcoind, electrsd, 10);
+		node_a.sync_wallets().unwrap();
+		node_b.sync_wallets().unwrap();
+	}
+}
+
 pub(crate) fn do_channel_full_cycle<E: ElectrumApi>(
 	node_a: TestNode, node_b: TestNode, bitcoind: &BitcoindClient, electrsd: &E, allow_0conf: bool,
 	expect_anchor_channel: bool, force_close: bool,

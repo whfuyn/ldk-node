@@ -12,6 +12,7 @@ use common::{
 	expect_payment_successful_event, generate_blocks_and_wait, open_channel,
 	premine_and_distribute_funds, random_config, setup_bitcoind_and_electrsd, setup_builder,
 	setup_node, setup_two_nodes, wait_for_tx, TestChainSource, TestSyncStore,
+	do_confirmation_height_lt_latest_broadcast_height,
 };
 
 use ldk_node::config::EsploraSyncConfig;
@@ -33,6 +34,14 @@ fn channel_full_cycle() {
 	let chain_source = TestChainSource::Esplora(&electrsd);
 	let (node_a, node_b) = setup_two_nodes(&chain_source, false, true, false);
 	do_channel_full_cycle(node_a, node_b, &bitcoind.client, &electrsd.client, false, true, false);
+}
+
+#[test]
+fn confirmation_height_lt_latest_broadcast_height() {
+	let (bitcoind, electrsd) = setup_bitcoind_and_electrsd();
+	let chain_source = TestChainSource::Esplora(&electrsd);
+	let (node_a, node_b) = setup_two_nodes(&chain_source, false, true, false);
+	do_confirmation_height_lt_latest_broadcast_height(node_a, node_b, &bitcoind.client, &electrsd.client, false, true, false);
 }
 
 #[test]

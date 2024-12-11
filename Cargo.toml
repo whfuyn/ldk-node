@@ -62,7 +62,7 @@ bdk_wallet = { version = "=1.0.0-beta.4", default-features = false, features = [
 
 reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
 rusqlite = { version = "0.31.0", features = ["bundled"] }
-bitcoin = "0.32.2"
+bitcoin = "0.32.3"
 bip39 = "2.0.0"
 bip21 = { version = "0.5", features = ["std"], default-features = false }
 
